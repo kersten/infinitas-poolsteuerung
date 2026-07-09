@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a reproducible problem. Do not include live mains wiring details or secrets.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Safety first: disconnect mains power before investigating physical controller behavior.
+  - type: input
+    id: version
+    attributes:
+      label: Firmware version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options: [Arduino Mega controller, ESP32 HomeKit gateway, UART protocol, Documentation, Tests]
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and safe reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant serial logs
+      render: text

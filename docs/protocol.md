@@ -43,7 +43,7 @@ The Mega emits `STATE` after every channel transition and at least every five se
 
 1. On Mega boot, it initializes both loads off, then emits `READY` and a `STATE` snapshot.
 2. The ESP32 sends `STATUS` after its own boot, including when the Mega's `READY` was missed.
-3. Upon receiving `READY`, the ESP32 sends `STATUS` again to reconcile its HomeKit characteristics.
+3. Upon receiving `READY`, the ESP32 sends `STATUS` again to reconcile its Matter endpoint state.
 4. Restarting the ESP32 does not alter Mega timers. Restarting the Mega clears both timers and results in an all-off state snapshot.
 
 The parser accepts only complete, exact commands and complete state snapshots; extra or malformed fields are rejected.

@@ -9,7 +9,7 @@ The Arduino Mega controls existing pool loads through an L298N driver and may be
 | Component | Role |
 | --- | --- |
 | Arduino Mega 2560 | Source of truth for timer state, buttons, load outputs, and LEDs |
-| ESP32 DevKit | HomeSpan/HomeKit gateway over UART only |
+| ESP32 DevKit | ESP-Matter gateway over UART only |
 | Existing L298N | Drives the two existing Infinitas load channels |
 | WS2812 ring | Sixteen visual status pixels: eight per timer |
 | Two momentary buttons | Local start/cancel controls, wired active-low |

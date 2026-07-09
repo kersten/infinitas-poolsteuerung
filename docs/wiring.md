@@ -2,6 +2,10 @@
 
 > Disconnect mains and low-voltage power before changing wiring. This document describes the controller-side low-voltage connections; it is not a substitute for a qualified mains installation design.
 
+![Fritzing-style low-voltage wiring diagram](fritzing-wiring-diagram.svg)
+
+The diagram is limited to the controller-side low-voltage wiring. It deliberately excludes the L298N load and mains-side terminals.
+
 ## Mega connections
 
 | Function | Mega pin | Connect to | Notes |

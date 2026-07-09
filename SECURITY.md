@@ -11,7 +11,7 @@ Include the affected revision, a safe proof of concept, impact, and any suggeste
 Security and safety scope includes:
 
 - firmware defects that can unexpectedly activate or fail to deactivate loads;
-- HomeKit or UART command handling that bypasses Arduino state authority;
+- Matter or UART command handling that bypasses Arduino state authority;
 - unsafe or misleading wiring documentation, including level-shifting guidance;
 - credentials or pairing information accidentally committed to the repository.
 

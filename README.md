@@ -1,6 +1,6 @@
 # Infinitas Pool Timer Controller
 
-A PlatformIO monorepo for a two-channel pool timer controller: an Arduino Mega 2560 remains the safety-critical controller, while an ESP32 exposes its state to Apple Home through HomeSpan.
+A firmware monorepo for a two-channel pool timer controller: an Arduino Mega 2560 remains the safety-critical controller, while an ESP32 exposes its state to Matter controllers such as Apple Home through ESP-Matter.
 
 > **Safety warning:** This project may be installed near mains voltage and pool equipment. Disconnect all power before working on the device. Mains wiring must be performed by qualified persons in accordance with local regulations. The authors accept no responsibility for damage, injury, or loss arising from use of this project.
 
@@ -9,9 +9,10 @@ A PlatformIO monorepo for a two-channel pool timer controller: an Arduino Mega 2
 - Two independent timers: 30 minutes (Channel A) and 2 hours (Channel B)
 - Local active-low push buttons with debouncing
 - Non-blocking 16-pixel WS2812 ring animations
+- Five-second LED-ring startup animation
 - Safe L298N load control with enable jumpers left installed
 - UART state protocol between the Mega and ESP32
-- Two HomeKit switches, with the Mega as the sole source of truth
+- Two Matter on/off endpoints, with the Mega as the sole source of truth
 - Native unit tests for protocol, timing, debounce, and LED mapping
 
 ## Architecture
@@ -24,13 +25,13 @@ Local buttons + WS2812 ring + L298N loads
         (timers, state, animations, loads)
                     │ UART: 3.3 V RX level shifted
                     ▼
-          ESP32 DevKit + HomeSpan
+          ESP32 DevKit + ESP-Matter
                     │
                     ▼
-               Apple Home / HomeKit
+        Apple Home and other Matter controllers
 ```
 
-The Mega owns timer state and all physical outputs. The ESP32 only sends line-based requests and mirrors confirmed Mega state into HomeKit; it never controls the L298N or LED ring.
+The Mega owns timer state and all physical outputs. The ESP32 only sends line-based requests and mirrors confirmed Mega state into Matter; it never controls the L298N or LED ring.
 
 ## Supported hardware
 
@@ -60,12 +61,15 @@ Do **not** connect the Mega USB port to ESP32 USB with a normal USB cable. Both 
 
 ## Build
 
-Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html), then run:
+Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html) for the Mega and native tests. The ESP32 gateway uses the ESP-IDF build system required by ESP-Matter.
 
 ```sh
 pio run -e mega-controller
-pio run -e esp32-gateway
 pio test -e native
+
+# In an ESP-IDF v5.4.1 + ESP-Matter v1.4.2 shell
+idf.py -C esp32-gateway set-target esp32
+idf.py -C esp32-gateway build
 ```
 
 ## Flash
@@ -74,20 +78,20 @@ Connect one board at a time over its own USB port and select the correct serial 
 
 ```sh
 pio run -e mega-controller -t upload --upload-port /dev/tty.usbmodemXXXX
-pio run -e esp32-gateway -t upload --upload-port /dev/tty.usbserial-XXXX
+idf.py -C esp32-gateway -p /dev/tty.usbserial-XXXX flash monitor
 ```
 
 Disconnect mains and pool equipment while flashing or changing low-voltage wiring.
 
-## HomeKit pairing
+## Matter pairing
 
 1. Flash the ESP32 gateway and connect it to the Mega UART wiring.
-2. Open the ESP32 serial monitor with `pio device monitor -e esp32-gateway`.
-3. HomeSpan prints its pairing setup code and QR code after Wi-Fi provisioning.
-4. In Apple Home, choose **Add Accessory** and scan or enter that setup code.
-5. The two exposed switches are **Pool 30 Minutes** and **Pool 2 Hours**.
+2. Open the ESP-IDF serial monitor with `idf.py -C esp32-gateway monitor`.
+3. ESP-Matter prints its Matter setup code and QR code during commissioning.
+4. In Apple Home, choose **Add Accessory** and scan or enter that Matter setup code.
+5. Name the two on/off endpoints **Pool 30 Minutes** and **Pool 2 Hours** in the controller.
 
-Read [HomeKit behavior](docs/homekit.md) for reset and resynchronization details.
+Read [Matter gateway behavior](docs/matter.md) for SDK setup, reset, pairing, and resynchronization details.
 
 ## Use
 
@@ -95,7 +99,7 @@ Read [HomeKit behavior](docs/homekit.md) for reset and resynchronization details
 - Press the right button to start the 2-hour Channel B timer; press it again while active to cancel.
 - Both channels can run simultaneously.
 - A load starts immediately, while its ring half fills. The countdown starts after the non-blocking startup animation completes.
-- HomeKit switch state follows the state reported by the Mega, not a requested command.
+- Matter endpoint state follows the state reported by the Mega, not a requested command.
 
 ## Serial protocol
 
@@ -109,10 +113,10 @@ The shared state machine has no Arduino dependencies and is tested on the host w
 
 ```text
 src/mega-controller/    Mega firmware and physical I/O adapters
-src/esp32-gateway/      HomeSpan gateway
+esp32-gateway/          ESP-IDF + ESP-Matter gateway
 lib/pool-common/        Protocol and testable state logic
 test/                   Native Unity tests
-docs/                   Wiring, hardware, protocol, HomeKit, testing notes
+docs/                   Wiring, hardware, protocol, Matter, testing notes
 .github/                CI, Dependabot, issue and PR templates
 ```
 
@@ -120,4 +124,4 @@ Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md). This project
 
 ### Dependency licenses
 
-The repository contains only this project's source. PlatformIO fetches [Adafruit NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) (LGPL-3.0-or-later) for the Mega and [HomeSpan](https://github.com/HomeSpan/HomeSpan) (MIT) for the gateway; neither library is vendored. The project source remains MIT-licensed. Releases are source releases, so anyone distributing compiled firmware must also meet the applicable dependency-license obligations.
+The repository contains only this project's source. PlatformIO fetches [Adafruit NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) (LGPL-3.0-or-later) for the Mega. The gateway uses [ESP-Matter](https://github.com/espressif/esp-matter) and ESP-IDF (both Apache-2.0); no SDK is vendored. The project source remains MIT-licensed. Releases are source releases, so anyone distributing compiled firmware must also meet the applicable dependency-license obligations.

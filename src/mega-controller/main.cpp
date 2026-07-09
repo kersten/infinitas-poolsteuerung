@@ -22,6 +22,8 @@ const uint8_t kLeftButtonPin = 24;
 const uint8_t kRightButtonPin = 26;
 const uint32_t kUartBaud = 115200;
 const uint32_t kStatusIntervalMs = 5000;
+const uint32_t kStartupAnimationDurationMs = 5000;
+const uint32_t kStartupAnimationFrameMs = 100;
 
 const pool::TimerChannelConfig kLeftTimerConfig = {
     30UL * 60UL * 1000UL,  // 30 minutes
@@ -53,6 +55,7 @@ pool::ButtonDebouncer rightButton;
 bool leftLoadOn = false;
 bool rightLoadOn = false;
 uint32_t lastStatusMs = 0;
+uint32_t startupAnimationStartedMs = 0;
 char uartLine[128];
 uint8_t uartLineLength = 0;
 
@@ -185,6 +188,40 @@ void fillHalf(pool::ChannelId channel, uint32_t pixelColor) {
   }
 }
 
+bool startupAnimationActive(uint32_t now) {
+  return static_cast<uint32_t>(now - startupAnimationStartedMs) <
+         kStartupAnimationDurationMs;
+}
+
+void setRingPixel(uint8_t logicalPixel, uint32_t pixelColor) {
+  const pool::ChannelId channel = logicalPixel < pool::kLedsPerChannel
+                                      ? pool::ChannelId::Left
+                                      : pool::ChannelId::Right;
+  const uint8_t segment = logicalPixel % pool::kLedsPerChannel;
+  setSegment(channel, segment, pixelColor);
+}
+
+void renderStartupAnimation(uint32_t now) {
+  const uint32_t elapsed = now - startupAnimationStartedMs;
+  const uint8_t head =
+      (elapsed / kStartupAnimationFrameMs) % pool::kLedCount;
+
+  for (uint8_t pixel = 0; pixel < pool::kLedCount; ++pixel) {
+    const uint8_t distance =
+        (head + pool::kLedCount - pixel) % pool::kLedCount;
+    if (distance == 0) {
+      setRingPixel(pixel, color(0, 180, 120));
+    } else if (distance == 1) {
+      setRingPixel(pixel, color(0, 55, 35));
+    } else if (distance == 2) {
+      setRingPixel(pixel, color(0, 8, 5));
+    } else {
+      setRingPixel(pixel, 0);
+    }
+  }
+  ring.show();
+}
+
 void renderTimer(pool::ChannelId channel, const pool::TimerChannel &timer,
                  uint32_t now) {
   clearHalf(channel);
@@ -226,6 +263,11 @@ void renderTimer(pool::ChannelId channel, const pool::TimerChannel &timer,
 }
 
 void renderLeds(uint32_t now) {
+  if (startupAnimationActive(now)) {
+    renderStartupAnimation(now);
+    return;
+  }
+
   renderTimer(pool::ChannelId::Left, leftTimer, now);
   renderTimer(pool::ChannelId::Right, rightTimer, now);
   ring.show();
@@ -249,6 +291,7 @@ void setup() {
   ring.begin();
   ring.clear();
   ring.show();
+  startupAnimationStartedMs = nowMs();
 
   Serial.begin(115200);
   Serial1.begin(kUartBaud);

@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Added
 
-- Initial Arduino Mega controller, ESP32 HomeKit gateway, shared protocol, tests, documentation, and GitHub automation.
+- Initial Arduino Mega controller, ESP32 Matter gateway, shared protocol, tests, documentation, and GitHub automation.
 
 ### Changed
 

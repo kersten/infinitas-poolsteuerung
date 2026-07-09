@@ -4,12 +4,12 @@ Thanks for contributing. This controller can affect pool equipment, so please tr
 
 ## Setup and checks
 
-Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html), fork the repository, and create a focused branch. Run these checks before opening a pull request:
+Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html), ESP-IDF v5.4.1, and ESP-Matter v1.4.2; then fork the repository and create a focused branch. Run these checks before opening a pull request:
 
 ```sh
 pio run -e mega-controller
-pio run -e esp32-gateway
 pio test -e native
+idf.py -C esp32-gateway build
 ```
 
 Use concise, imperative commits such as `Add UART status timeout` or `Fix right timer feedback blink`.

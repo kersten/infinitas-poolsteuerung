@@ -1,26 +1,37 @@
 # Contributing
 
-Thanks for contributing. This controller can affect pool equipment, so please treat safety, reviewability, and test coverage as first-class requirements.
+Thank you for contributing to pool-anode-controller. Electrical and water
+safety are part of every change, not an afterthought.
 
-## Setup and checks
+## Setup and verification
 
-Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html), ESP-IDF v5.4.1, and ESP-Matter v1.4.2; then fork the repository and create a focused branch. Run these checks before opening a pull request:
+Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html),
+fork the repository, and create a focused branch. Before opening a pull request,
+run:
 
 ```sh
-pio run -e mega-controller
+pio run -e mega-anode-controller
+pio run -e esp32-Matter-gateway
 pio test -e native
-idf.py -C esp32-gateway build
 ```
 
-Use concise, imperative commits such as `Add UART status timeout` or `Fix right timer feedback blink`.
+Use concise, imperative commits, for example `Add UART state timeout` or
+`Fix Whirlpool Anode feedback blink`.
 
 ## Issues and pull requests
 
-- Search existing issues before creating a new one. Include versions, safe reproduction steps, and relevant serial output.
-- Keep pull requests small and explain the behavior change and validation performed.
-- Never claim hardware behavior that you have not tested. State when testing is limited to native tests or compilation.
-- Hardware-related changes must document their wiring impact in `docs/wiring.md` and `docs/hardware.md` as appropriate.
-- Protocol changes must update `docs/protocol.md` and the relevant native tests in the same pull request.
-- Mega changes must preserve the invariant that D4 and D5 are never driven as outputs while the L298N enable jumpers are installed.
+- Search open issues first and include firmware versions, safe reproduction
+  steps, and relevant serial output.
+- Keep each pull request focused and state exactly which checks and hardware
+  tests were performed.
+- Hardware-related changes must document their wiring impact in
+  `docs/wiring.md` and `docs/hardware.md`.
+- Protocol changes must update `docs/protocol.md` and corresponding native tests
+  in the same pull request.
+- Preserve the safety invariant that Mega D4 and D5 are never output pins while
+  the L298N enable jumpers are installed.
+- Use Swimming Pool Anode, Whirlpool Anode, `swimmingPool`, and `whirlpool`
+  terminology consistently. Do not reintroduce positional or generic channel
+  names.
 
-By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).

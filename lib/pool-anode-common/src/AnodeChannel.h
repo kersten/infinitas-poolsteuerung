@@ -2,32 +2,30 @@
 
 #include <stdint.h>
 
-#include "ChannelState.h"
+#include "AnodeState.h"
 
-namespace pool {
+namespace poolanode {
 
-struct TimerChannelConfig {
-  uint32_t durationMs;
+struct AnodeChannelConfig {
+  uint32_t runtimeMs;
   uint32_t startupStepMs;
   uint8_t startupSteps;
   uint32_t startupPulseMs;
   uint32_t feedbackMs;
 };
 
-// A hardware-independent, non-blocking timer state machine. All timestamps are
-// uint32_t millis() values; subtraction is deliberately used for overflow safety.
-class TimerChannel {
+class AnodeChannel {
  public:
-  explicit TimerChannel(const TimerChannelConfig &config);
+  explicit AnodeChannel(const AnodeChannelConfig &config);
 
   bool start(uint32_t now);
   bool cancel(uint32_t now);
   bool toggle(uint32_t now);
   bool update(uint32_t now);
 
-  ChannelState state() const;
-  bool loadShouldBeOn() const;
-  uint32_t remainingMs(uint32_t now) const;
+  AnodeState state() const;
+  bool outputShouldBeEnabled() const;
+  uint32_t remainingRuntimeMs(uint32_t now) const;
   uint8_t startupFilledSegments(uint32_t now) const;
   bool startupPulseVisible(uint32_t now) const;
   bool feedbackVisible(uint32_t now) const;
@@ -37,12 +35,12 @@ class TimerChannel {
  private:
   uint32_t elapsedSince(uint32_t now, uint32_t timestamp) const;
   uint32_t startupDurationMs() const;
-  void transitionTo(ChannelState next, uint32_t now);
+  void transitionTo(AnodeState next, uint32_t now);
 
-  TimerChannelConfig config_;
-  ChannelState state_;
+  AnodeChannelConfig config_;
+  AnodeState state_;
   uint32_t stateSinceMs_;
   uint32_t runningSinceMs_;
 };
 
-}  // namespace pool
+}  // namespace poolanode

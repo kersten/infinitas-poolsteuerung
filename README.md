@@ -1,127 +1,160 @@
-# Infinitas Pool Timer Controller
+# pool-anode-controller
 
-A firmware monorepo for a two-channel pool timer controller: an Arduino Mega 2560 remains the safety-critical controller, while an ESP32 exposes its state to Matter controllers such as Apple Home through ESP-Matter.
+Dual-channel copper anode timer controller for swimming pool and whirlpool
+ionization systems.
 
-> **Safety warning:** This project may be installed near mains voltage and pool equipment. Disconnect all power before working on the device. Mains wiring must be performed by qualified persons in accordance with local regulations. The authors accept no responsibility for damage, injury, or loss arising from use of this project.
+> **Safety warning:** This DIY firmware controls copper anodes near pool
+> equipment. Disconnect power before opening, wiring, flashing, or servicing
+> the installation. Qualified persons must handle mains wiring under local
+> regulations. Test copper, pH, alkalinity, and every other relevant water
+> parameter with suitable pool-test equipment. The firmware controls anode
+> runtime only: it does not measure copper concentration and cannot guarantee
+> safe or correct water chemistry. The authors are not responsible for damage,
+> unsafe water conditions, staining, corrosion, injury, or equipment failure.
 
 ## Features
 
-- Two independent timers: 30 minutes (Channel A) and 2 hours (Channel B)
-- Local active-low push buttons with debouncing
-- Non-blocking 16-pixel WS2812 ring animations
-- Five-second LED-ring startup animation
-- Safe L298N load control with enable jumpers left installed
-- UART state protocol between the Mega and ESP32
-- Two Matter on/off endpoints, with the Mega as the sole source of truth
-- Native unit tests for protocol, timing, debounce, and LED mapping
+- Independent Swimming Pool Anode (30 minutes) and Whirlpool Anode (2 hours)
+  channels that can run together
+- Local active-low buttons with software debounce
+- Non-blocking 16-pixel WS2812/NeoPixel animations: startup, runtime, cancel,
+  and finish feedback
+- Arduino Mega is the authoritative anode-runtime and physical-output
+  controller
+- ESP32 Matter gateway mirrors only Mega-confirmed anode state over UART
+- Native PlatformIO tests for the protocol, channel state machine, buttons,
+  LED mapping, remaining runtime, and `millis()` overflow behavior
 
 ## Architecture
 
 ```text
-Local buttons + WS2812 ring + L298N loads
-                    │
-                    ▼
-        Arduino Mega 2560 controller
-        (timers, state, animations, loads)
-                    │ UART: 3.3 V RX level shifted
-                    ▼
-          ESP32 DevKit + ESP-Matter
-                    │
-                    ▼
-        Apple Home and other Matter controllers
+Swimming Pool button ─┐
+Whirlpool button ─────┼──> Arduino Mega 2560 ──> L298N IN1/IN2: Swimming Pool Anode
+WS2812 ring ──────────┘        │                └> L298N IN3/IN4: Whirlpool Anode
+                               │ Serial1 UART (Mega state is authoritative)
+                               ▼
+                         ESP32 Matter gateway ──> Matter controllers
 ```
 
-The Mega owns timer state and all physical outputs. The ESP32 only sends line-based requests and mirrors confirmed Mega state into Matter; it never controls the L298N or LED ring.
+The ESP32 does not control the copper anode outputs, the LED ring, or anode
+runtime. It sends UART requests and applies a Matter state only after an
+Arduino `STATE` event confirms it.
 
 ## Supported hardware
 
 - Arduino Mega 2560
-- ESP32 DevKit (ESP32-WROOM compatible)
+- ESP32 DevKit / ESP32-WROOM-compatible board with UART2 on GPIO16/GPIO17
 - Existing Infinitas L298N wiring
-- 16-pixel 5 V WS2812/NeoPixel ring
-- Two momentary, normally-open push buttons
-- Appropriate isolated 5 V / 3.3 V power conversion for the installation
+- 16-pixel, 5 V WS2812/NeoPixel ring
+- Two normally-open momentary buttons
+- Properly rated low-voltage supply and a Mega-to-ESP32 UART level shifter
 
-See [hardware notes](docs/hardware.md) and the complete [wiring guide](docs/wiring.md) before connecting anything.
+Read [hardware notes](docs/hardware.md), [wiring](docs/wiring.md), and
+[safety guidance](docs/safety.md) before connecting hardware.
 
 ## Wiring summary
 
-| Function | Arduino Mega | Other end |
+| Purpose | Arduino Mega | Connection |
 | --- | ---: | --- |
-| Channel A | D3 = IN1, D2 = IN2 | L298N |
-| Channel B | D7 = IN3, D6 = IN4 | L298N |
-| Ring data | D22 | WS2812 DIN |
-| Left button | D24 | Button to GND |
-| Right button | D26 | Button to GND |
-| Mega UART TX | D18 / TX1 | 1 kΩ then ESP32 GPIO16; 2 kΩ from GPIO16 to GND |
-| Mega UART RX | D19 / RX1 | ESP32 GPIO17 / TX2 |
+| Swimming Pool Anode | D3 = IN1, D2 = IN2 | L298N |
+| Whirlpool Anode | D7 = IN3, D6 = IN4 | L298N |
+| LED ring data | D22 | WS2812 DIN |
+| Swimming Pool button | D24 | Momentary button to GND |
+| Whirlpool button | D26 | Momentary button to GND |
+| Mega TX1 | D18 | Voltage divider, then ESP32 GPIO16 / RX2 |
+| Mega RX1 | D19 | ESP32 GPIO17 / TX2 |
 | Reference | GND | ESP32 GND |
 
-Do **not** connect the Mega USB port to ESP32 USB with a normal USB cable. Both are USB devices. Use the UART above. Mega D4 and D5 are not driven because the L298N ENA/ENB jumpers remain fitted.
+Do not connect the Mega USB port directly to ESP32 USB. Both are USB devices;
+use the UART above. Mega D4 and D5 are deliberately not driven because the
+L298N ENA and ENB jumpers remain installed.
 
 ## Build
 
-Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html) for the Mega and native tests. The ESP32 gateway uses the ESP-IDF build system required by ESP-Matter.
+Install [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation/index.html).
+The ESP32 environment uses Espressif's Arduino Matter library and its required
+large application partition.
 
 ```sh
-pio run -e mega-controller
+pio run -e mega-anode-controller
+pio run -e esp32-Matter-gateway
 pio test -e native
-
-# In an ESP-IDF v5.4.1 + ESP-Matter v1.4.2 shell
-idf.py -C esp32-gateway set-target esp32
-idf.py -C esp32-gateway build
 ```
 
 ## Flash
 
-Connect one board at a time over its own USB port and select the correct serial device:
+Disconnect pool equipment power before changing firmware or low-voltage wiring.
+Connect each board to its own USB connection, one at a time.
 
 ```sh
-pio run -e mega-controller -t upload --upload-port /dev/tty.usbmodemXXXX
-idf.py -C esp32-gateway -p /dev/tty.usbserial-XXXX flash monitor
+pio run -e mega-anode-controller -t upload --upload-port /dev/tty.usbmodemXXXX
+pio run -e esp32-Matter-gateway -t upload --upload-port /dev/tty.usbserial-XXXX
 ```
 
-Disconnect mains and pool equipment while flashing or changing low-voltage wiring.
+For a newly flashed Matter board, erase flash before commissioning if it has
+old Wi-Fi or Matter fabric data:
+
+```sh
+pio run -e esp32-Matter-gateway -t erase
+```
 
 ## Matter pairing
 
-1. Flash the ESP32 gateway and connect it to the Mega UART wiring.
-2. Open the ESP-IDF serial monitor with `idf.py -C esp32-gateway monitor`.
-3. ESP-Matter prints its Matter setup code and QR code during commissioning.
-4. In Apple Home, choose **Add Accessory** and scan or enter that Matter setup code.
-5. Name the two on/off endpoints **Pool 30 Minutes** and **Pool 2 Hours** in the controller.
+1. Wire UART2 as documented, then power the Mega and ESP32.
+2. Open the ESP32 serial monitor at 115200 baud: `pio device monitor -b 115200`.
+3. Copy the printed manual pairing code or open the printed QR-code URL.
+4. In a Matter controller, add the device with that code.
+5. The two exposed switches are **Swimming Pool Anode** and **Whirlpool
+   Anode**. Keep those names when assigning labels in the Matter controller.
 
-Read [Matter gateway behavior](docs/matter.md) for SDK setup, reset, pairing, and resynchronization details.
+See [Matter gateway details](docs/Matter.md), including restart resynchronization.
 
-## Use
+## Usage
 
-- Press the left button to start the 30-minute Channel A timer; press it again while active to cancel.
-- Press the right button to start the 2-hour Channel B timer; press it again while active to cancel.
-- Both channels can run simultaneously.
-- A load starts immediately, while its ring half fills. The countdown starts after the non-blocking startup animation completes.
-- Matter endpoint state follows the state reported by the Mega, not a requested command.
+- Press the Swimming Pool button to start its copper anode channel. Press it
+  again during startup or runtime to cancel it.
+- Press the Whirlpool button to control the Whirlpool Anode channel the same
+  way.
+- The anode drive output turns on immediately. Its eight LEDs fill orange/red
+  without blocking the other channel. The runtime countdown begins after that
+  startup animation.
+- During runtime, elapsed segments are green; remaining segments are red; the
+  active segment blinks. Yellow means cancel feedback and green means finished
+  feedback.
 
 ## Serial protocol
 
-Messages are ASCII lines terminated by `\n`. The ESP32 may send `START_LEFT`, `STOP_LEFT`, `START_RIGHT`, `STOP_RIGHT`, `TOGGLE_LEFT`, `TOGGLE_RIGHT`, and `STATUS`. The Mega sends `READY`, `STATE ...`, and `ERROR ...`. See the full [protocol specification](docs/protocol.md).
+Messages are ASCII lines terminated with `\n`. The ESP32 sends commands such as
+`START_SWIMMING_POOL` and `STOP_WHIRLPOOL`; the Mega emits `READY`, `STATE`,
+and `ERROR` events. The full contract and examples are in
+[docs/protocol.md](docs/protocol.md).
 
 ## Testing
 
-The shared state machine has no Arduino dependencies and is tested on the host with `pio test -e native`. The manual hardware checklist is in [docs/testing.md](docs/testing.md).
+Run the no-hardware unit suite with `pio test -e native`. The complete manual
+hardware checklist is in [docs/testing.md](docs/testing.md).
 
 ## Repository layout
 
 ```text
-src/mega-controller/    Mega firmware and physical I/O adapters
-esp32-gateway/          ESP-IDF + ESP-Matter gateway
-lib/pool-common/        Protocol and testable state logic
-test/                   Native Unity tests
-docs/                   Wiring, hardware, protocol, Matter, testing notes
-.github/                CI, Dependabot, issue and PR templates
+src/mega-anode-controller/       Arduino Mega hardware integration
+src/esp32-Matter-gateway/        ESP32 UART-to-Matter gateway
+lib/pool-anode-common/           Testable protocol and anode-runtime logic
+test/                            Native Unity tests
+docs/                            Hardware, wiring, protocol, Matter, safety, tests
+hardware/fritzing/               Fritzing-source guidance and parts location
+.github/                         CI, Dependabot, issue and pull-request templates
 ```
 
-Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md). This project is released under the [MIT License](LICENSE). It is an independent community project and is not affiliated with, endorsed by, or supported by Infinitas.
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). This project
+uses the [MIT License](LICENSE). It is independent software and is not
+affiliated with, endorsed by, or supported by Infinitas. It does not replace
+water chemistry testing or professional pool maintenance.
 
-### Dependency licenses
+### Dependencies and licensing
 
-The repository contains only this project's source. PlatformIO fetches [Adafruit NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) (LGPL-3.0-or-later) for the Mega. The gateway uses [ESP-Matter](https://github.com/espressif/esp-matter) and ESP-IDF (both Apache-2.0); no SDK is vendored. The project source remains MIT-licensed. Releases are source releases, so anyone distributing compiled firmware must also meet the applicable dependency-license obligations.
+This repository does not vendor dependency source. PlatformIO retrieves
+Adafruit NeoPixel (LGPL-3.0-or-later), Arduino-ESP32 (LGPL-2.1-or-later), and
+ESP-Matter (Apache-2.0) from their upstream projects. Those licenses permit use
+alongside MIT-licensed project source, subject to their own notice and
+distribution conditions.

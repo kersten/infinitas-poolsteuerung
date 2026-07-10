@@ -1,51 +1,61 @@
-# Wiring guide
+# Wiring
 
-> Disconnect mains and low-voltage power before changing wiring. This document describes the controller-side low-voltage connections; it is not a substitute for a qualified mains installation design.
+Disconnect all power before wiring. This document covers low-voltage controller
+connections; mains work belongs to qualified persons under local regulations.
 
-![Fritzing-style low-voltage wiring diagram](fritzing-wiring-diagram.svg)
+## L298N copper anode connections
 
-The diagram is limited to the controller-side low-voltage wiring. It deliberately excludes the L298N load and mains-side terminals.
-
-## Mega connections
-
-| Function | Mega pin | Connect to | Notes |
+| Copper anode channel | Mega pin | L298N input | Mega state when enabled |
 | --- | ---: | --- | --- |
-| Channel A ON | D3 | L298N IN1 | HIGH = on |
-| Channel A OFF | D2 | L298N IN2 | Keep LOW for off/on operation |
-| Channel B ON | D7 | L298N IN3 | HIGH = on |
-| Channel B OFF | D6 | L298N IN4 | Keep LOW for off/on operation |
-| L298N enable A | D4 | ENA | Leave jumper installed; firmware sets D4 to input only |
-| L298N enable B | D5 | ENB | Leave jumper installed; firmware sets D5 to input only |
-| Ring data | D22 | WS2812 DIN | Add data resistor near ring input |
-| Left button | D24 | Button → GND | `INPUT_PULLUP`, active-low |
-| Right button | D26 | Button → GND | `INPUT_PULLUP`, active-low |
+| Swimming Pool Anode | D3 | IN1 | HIGH |
+| Swimming Pool Anode | D2 | IN2 | LOW |
+| Whirlpool Anode | D7 | IN3 | HIGH |
+| Whirlpool Anode | D6 | IN4 | LOW |
 
-## UART between boards
+Leave L298N ENA and ENB jumpers installed. D4 and D5 must not be wired as
+firmware-controlled enables and are not driven by the firmware.
 
-| From | To | Required conditioning |
-| --- | --- | --- |
-| Mega D18 / TX1 | ESP32 GPIO16 / RX2 | Mega D18 → 1 kΩ → GPIO16; GPIO16 → 2 kΩ → GND |
-| ESP32 GPIO17 / TX2 | Mega D19 / RX1 | Direct connection is acceptable |
-| Mega GND | ESP32 GND | Mandatory common reference |
+## UART: Arduino Mega Serial1 to ESP32 UART2
 
-The divider is mandatory because Mega output is 5 V. Never put a 5 V Mega TX signal directly into an ESP32 GPIO. Do not join Mega USB and ESP32 USB with a USB cable.
+| Signal | From | To | Required treatment |
+| --- | --- | --- | --- |
+| Mega TX1 | D18 | ESP32 RX2 GPIO16 | Pass through a 5 V-to-3.3 V level shifter or voltage divider |
+| ESP32 TX2 | GPIO17 | Mega RX1 D19 | Direct 3.3 V UART signal is normally accepted by the Mega |
+| Ground | Mega GND | ESP32 GND | Common reference is mandatory |
+
+Do not connect the boards' USB ports to each other. Use their USB ports only
+individually for flashing or serial diagnostics.
+
+For a voltage divider on the Mega-to-ESP32 line, use a resistor from D18 to the
+GPIO16 node and another from that node to ground, selected so a 5 V input is at
+or below ESP32 3.3 V logic level. A common starting point is 1 kΩ high side and
+2 kΩ low side; verify values, tolerance, and installation suitability.
 
 ## External control box
 
-| Device | Connection |
-| --- | --- |
-| Left button | One terminal to D24, other terminal to GND |
-| Right button | One terminal to D26, other terminal to GND |
-| WS2812 DIN | Mega D22 through a 330–470 Ω series resistor |
-| WS2812 5 V | Regulated 5 V supply suitable for 16 pixels |
-| WS2812 GND | Common low-voltage ground |
+| Item | Mega connection | Other connection | Notes |
+| --- | ---: | --- | --- |
+| Swimming Pool button | D24 | GND | `INPUT_PULLUP`, active-low |
+| Whirlpool button | D26 | GND | `INPUT_PULLUP`, active-low |
+| WS2812 ring DIN | D22 | Ring data input | Put series data resistor close to the first LED |
+| WS2812 ring 5 V | Rated 5 V supply | Ring VCC | Size supply and cable appropriately |
+| WS2812 ring GND | Common GND | Ring GND | Required with data signal |
 
-Place a roughly 1000 µF electrolytic capacitor across 5 V and GND close to the LED ring, observing polarity. Place the 330–470 Ω data resistor close to the ring's DIN pin. The one-metre cable should have proper strain relief and a ground conductor alongside the data wire; if interference occurs, shorten the run or use a suitable level-shifting/buffer solution designed for the installation.
+The buttons have no LEDs: each normally-open switch simply joins its Mega pin
+to ground when pressed. The firmware debounces them in software.
 
-## Pre-power checklist
+Place a roughly 330–470 Ω resistor in the LED data wire near the first LED and
+a suitably rated electrolytic capacitor (for example, 500–1000 µF) across the
+ring 5 V and GND close to the ring. Follow the ring manufacturer's voltage,
+current, and polarity specifications, especially for the approximately 1 m
+cable.
 
-- Confirm L298N ENA/ENB jumpers are installed.
-- Confirm D4 and D5 are not used as control wires or firmware outputs.
-- Verify the Mega-to-ESP32 divider values and common ground.
-- Verify ring polarity, capacitor polarity, and data direction.
-- Test with pool loads safely isolated before enabling any controlled equipment.
+## Installation checks
+
+1. With all power removed, inspect polarity, insulation, strain relief, and
+   common ground connections.
+2. Power low-voltage electronics safely and verify both copper anode inputs
+   remain LOW at Arduino startup.
+3. Verify UART `READY` and `STATE` messages before Matter commissioning.
+4. Test the Swimming Pool Anode and Whirlpool Anode separately, then together,
+   before connecting the system to normal pool operation.

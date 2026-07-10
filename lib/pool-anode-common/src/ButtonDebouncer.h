@@ -2,10 +2,8 @@
 
 #include <stdint.h>
 
-namespace pool {
+namespace poolanode {
 
-// Debounces an active-low, INPUT_PULLUP button. poll() returns true once per
-// physical press and never repeats while the button remains held.
 class ButtonDebouncer {
  public:
   explicit ButtonDebouncer(uint32_t debounceMs = 35, bool initialHigh = true);
@@ -20,4 +18,4 @@ class ButtonDebouncer {
   uint32_t lastRawChangeMs_;
 };
 
-}  // namespace pool
+}  // namespace poolanode

@@ -1,49 +1,55 @@
 # UART protocol
 
-The Arduino Mega is authoritative. The ESP32 sends requests and must wait for a `STATE` event before treating a requested change as accepted. Lines are ASCII and terminated by a newline (`\n`). Carriage returns are ignored.
+The Arduino Mega owns the true copper-anode state. The ESP32 sends requests;
+it does not assume they succeeded until it receives a `STATE` event. Every
+message is one ASCII line ending in `\n`. Receivers ignore `\r`.
 
-## Commands: ESP32 to Mega
+## ESP32-to-Mega commands
 
-| Command | Effect |
+| Command | Behavior |
 | --- | --- |
-| `START_LEFT` | Start the left timer only when it is idle |
-| `STOP_LEFT` | Cancel the left timer when it is starting or running |
-| `START_RIGHT` | Start the right timer only when it is idle |
-| `STOP_RIGHT` | Cancel the right timer when it is starting or running |
-| `TOGGLE_LEFT` | Start idle left timer, otherwise cancel an active left timer |
-| `TOGGLE_RIGHT` | Start idle right timer, otherwise cancel an active right timer |
-| `STATUS` | Request the current state without changing it |
+| `START_SWIMMING_POOL` | Start the Swimming Pool Anode only when idle |
+| `STOP_SWIMMING_POOL` | Cancel the Swimming Pool Anode when starting or running |
+| `START_WHIRLPOOL` | Start the Whirlpool Anode only when idle |
+| `STOP_WHIRLPOOL` | Cancel the Whirlpool Anode when starting or running |
+| `TOGGLE_SWIMMING_POOL` | Start idle Swimming Pool Anode or cancel active channel |
+| `TOGGLE_WHIRLPOOL` | Start idle Whirlpool Anode or cancel active channel |
+| `STATUS` | Request the current authoritative snapshot |
 
-Commands are idempotent from the gateway's perspective: the Mega responds with a state snapshot even if a start/stop request causes no state change.
+Start and stop no-ops still cause the Mega to send its state so the gateway can
+reconcile.
 
-## Events: Mega to ESP32
+## Mega-to-ESP32 events
 
 | Event | Meaning |
 | --- | --- |
-| `READY` | Mega boot completed in the safe, loads-off state |
-| `STATE LEFT=<state> RIGHT=<state> LEFT_REMAINING=<ms> RIGHT_REMAINING=<ms>` | Complete authoritative snapshot |
-| `ERROR CODE=UNKNOWN_COMMAND MESSAGE=<message>` | Invalid or overlong request was ignored |
+| `READY` | Mega booted with both copper anode outputs off |
+| `STATE SWIMMING_POOL=<state> WHIRLPOOL=<state> SWIMMING_POOL_REMAINING=<ms> WHIRLPOOL_REMAINING=<ms>` | Complete authoritative snapshot |
+| `ERROR CODE=UNKNOWN_COMMAND MESSAGE=<message>` | Command was not recognized or line was too long |
 
-States are `IDLE`, `STARTING`, `RUNNING`, `CANCELED_FEEDBACK`, and `FINISHED_FEEDBACK`. Remaining milliseconds equal the configured duration during `STARTING`, decrease only in `RUNNING`, and are zero for every inactive/feedback state.
+States are `IDLE`, `STARTING`, `RUNNING`, `CANCELED_FEEDBACK`, and
+`FINISHED_FEEDBACK`. The Matter gateway maps `STARTING` and `RUNNING` to switch
+on; all other states map to switch off.
 
 Examples:
 
 ```text
-START_LEFT
-STATE LEFT=STARTING RIGHT=IDLE LEFT_REMAINING=1800000 RIGHT_REMAINING=0
-STATE LEFT=RUNNING RIGHT=IDLE LEFT_REMAINING=1799998 RIGHT_REMAINING=0
-STOP_LEFT
-STATE LEFT=CANCELED_FEEDBACK RIGHT=IDLE LEFT_REMAINING=0 RIGHT_REMAINING=0
+READY
+STATE SWIMMING_POOL=IDLE WHIRLPOOL=IDLE SWIMMING_POOL_REMAINING=0 WHIRLPOOL_REMAINING=0
+START_SWIMMING_POOL
+STATE SWIMMING_POOL=STARTING WHIRLPOOL=IDLE SWIMMING_POOL_REMAINING=1800000 WHIRLPOOL_REMAINING=0
+STATE SWIMMING_POOL=RUNNING WHIRLPOOL=RUNNING SWIMMING_POOL_REMAINING=1234567 WHIRLPOOL_REMAINING=7654321
 ERROR CODE=UNKNOWN_COMMAND MESSAGE=unsupported_command
 ```
 
-The Mega emits `STATE` after every channel transition and at least every five seconds while either timer is active. Unknown and malformed input must not change state or crash either board.
+## Synchronization and errors
 
-## Startup synchronization and restarts
+The Mega emits `READY`, followed by a state snapshot, during startup. It emits
+a new snapshot after anode-channel state changes and at least every five
+seconds while either channel is active. The ESP32 asks for `STATUS` after its
+own boot and again whenever it receives `READY`.
 
-1. On Mega boot, it initializes both loads off, then emits `READY` and a `STATE` snapshot.
-2. The ESP32 sends `STATUS` after its own boot, including when the Mega's `READY` was missed.
-3. Upon receiving `READY`, the ESP32 sends `STATUS` again to reconcile its Matter endpoint state.
-4. Restarting the ESP32 does not alter Mega timers. Restarting the Mega clears both timers and results in an all-off state snapshot.
-
-The parser accepts only complete, exact commands and complete state snapshots; extra or malformed fields are rejected.
+An unknown or malformed command must not change either anode channel. The Mega
+returns `ERROR`; the ESP32 logs unknown or malformed inbound lines and leaves
+its confirmed Matter state untouched. A Mega restart returns to a safe,
+both-off condition and the next snapshot corrects Matter state.

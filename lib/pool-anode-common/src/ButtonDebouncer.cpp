@@ -1,6 +1,6 @@
 #include "ButtonDebouncer.h"
 
-namespace pool {
+namespace poolanode {
 
 ButtonDebouncer::ButtonDebouncer(uint32_t debounceMs, bool initialHigh)
     : debounceMs_(debounceMs),
@@ -13,7 +13,6 @@ bool ButtonDebouncer::poll(bool rawHigh, uint32_t now) {
     lastRawHigh_ = rawHigh;
     lastRawChangeMs_ = now;
   }
-
   if (stableHigh_ != lastRawHigh_ &&
       static_cast<uint32_t>(now - lastRawChangeMs_) >= debounceMs_) {
     stableHigh_ = lastRawHigh_;
@@ -24,4 +23,4 @@ bool ButtonDebouncer::poll(bool rawHigh, uint32_t now) {
 
 bool ButtonDebouncer::isPressed() const { return !stableHigh_; }
 
-}  // namespace pool
+}  // namespace poolanode

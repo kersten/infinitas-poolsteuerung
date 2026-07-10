@@ -19,6 +19,6 @@ body:
     id: safety
     attributes:
       label: Wiring and safety impact
-      description: State "none" when the request does not affect hardware or load activation.
+      description: State "none" when the request does not affect hardware wiring or anode activation.
     validations:
       required: true

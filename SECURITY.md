@@ -2,17 +2,23 @@
 
 ## Reporting a vulnerability
 
-Please do not publicly disclose a suspected safety-critical vulnerability before maintainers have had a reasonable opportunity to respond. Use GitHub's private security advisory reporting for this repository when available; otherwise contact the maintainers privately through the repository owner profile with a clear subject such as `Security report: pool timer`.
+Do not publicly disclose a suspected safety-critical vulnerability before
+maintainers have had a reasonable opportunity to respond. Use GitHub private
+security advisories when enabled, or contact the repository owner privately
+with a subject such as `Security report: pool-anode-controller`.
 
-Include the affected revision, a safe proof of concept, impact, and any suggested mitigation. Do not perform tests on energized mains equipment solely to demonstrate a report.
+Include the affected revision, a safe proof of concept, expected impact, and
+suggested mitigation. Do not energize pool equipment merely to demonstrate a
+report.
 
 ## Scope
 
 Security and safety scope includes:
 
-- firmware defects that can unexpectedly activate or fail to deactivate loads;
-- Matter or UART command handling that bypasses Arduino state authority;
-- unsafe or misleading wiring documentation, including level-shifting guidance;
-- credentials or pairing information accidentally committed to the repository.
+- firmware defects that can unexpectedly activate a copper anode output;
+- Matter or UART command handling defects that bypass Arduino state authority;
+- unsafe wiring documentation, including UART level-shifting guidance;
+- credentials or Matter pairing information accidentally committed to source.
 
-Maintainers will acknowledge reports, assess severity, coordinate a fix where practical, and credit reporters who wish to be named.
+Maintainers will acknowledge reports, assess severity, coordinate a correction
+where practical, and credit reporters who wish to be named.

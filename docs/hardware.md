@@ -1,42 +1,47 @@
-# Hardware overview
+# Hardware
 
-## Safety boundary
+pool-anode-controller separates safety-critical copper-anode control from
+network integration.
 
-The Arduino Mega controls existing pool loads through an L298N driver and may be installed alongside mains-voltage equipment. The ESP32 and external controls are low-voltage only; they do not make an installation mains-safe. Isolate power before opening the enclosure and have qualified persons perform mains work under local rules.
-
-## Components
-
-| Component | Role |
+| Component | Responsibility |
 | --- | --- |
-| Arduino Mega 2560 | Source of truth for timer state, buttons, load outputs, and LEDs |
-| ESP32 DevKit | ESP-Matter gateway over UART only |
-| Existing L298N | Drives the two existing Infinitas load channels |
-| WS2812 ring | Sixteen visual status pixels: eight per timer |
-| Two momentary buttons | Local start/cancel controls, wired active-low |
-| Buck converter | Provides a suitable regulated low-voltage supply; size and isolate appropriately |
-| 1 kΩ + 2 kΩ resistors | UART voltage divider from Mega TX1 to ESP32 RX2 |
+| Arduino Mega 2560 | Authoritative anode state, buttons, LED ring, runtime, and L298N input signals |
+| ESP32 | Matter gateway; UART commands and confirmed-state mirroring only |
+| Existing Infinitas L298N | Drives both copper anode output pairs |
+| WS2812 / NeoPixel ring | 16 status LEDs: 8 Swimming Pool Anode, 8 Whirlpool Anode |
+| External control box | Two simple momentary buttons and the LED ring, about 1 m from the main box |
+| Buck converter | Provides a correctly rated, stable supply for low-voltage electronics |
+| UART voltage divider | Reduces Mega 5 V TX1 to an ESP32-safe 3.3 V RX2 signal |
 
-## Existing Infinitas L298N mapping
+## Existing L298N mapping
 
-| Arduino pin | L298N pin | Meaning |
-| ---: | --- | --- |
-| D3 | IN1 | Channel A forward/on signal |
-| D2 | IN2 | Channel A off signal |
-| D7 | IN3 | Channel B forward/on signal |
-| D6 | IN4 | Channel B off signal |
-| D4 | ENA | **Not driven** |
-| D5 | ENB | **Not driven** |
+| Copper anode channel | Arduino Mega | L298N | Active polarity |
+| --- | ---: | --- | --- |
+| Swimming Pool Anode | D3 | IN1 | HIGH |
+| Swimming Pool Anode | D2 | IN2 | LOW |
+| Whirlpool Anode | D7 | IN3 | HIGH |
+| Whirlpool Anode | D6 | IN4 | LOW |
 
-Channel A is on when IN1 is HIGH and IN2 is LOW; it is off when both are LOW. Channel B is on when IN3 is HIGH and IN4 is LOW; it is off when both are LOW.
+The Mega configures each pair as outputs. Its safe startup condition drives all
+four input signals LOW, so both copper anode channels are off. The ON-polarity
+constants are at the top of `src/mega-anode-controller/main.cpp`; validate
+polarity with the installed ionization system before normal operation.
 
-The L298N ENA and ENB jumpers must remain installed. They hold the enable inputs active, so this firmware configures Mega D4 and D5 as `INPUT` and never writes or PWM-drives them. Removing the jumpers changes the electrical design and is outside this project's supported configuration.
+## L298N enable jumpers
 
-## External control box
+Keep the L298N ENA and ENB jumpers installed. They hold the bridge enables
+active. Therefore Mega D4 and D5 are configured as inputs and are otherwise
+unused. Firmware never configures either pin as an output and never writes or
+uses PWM on either pin. This avoids electrical contention with the installed
+jumper arrangement.
 
-The approximately one-metre external box contains two simple buttons and the 16-pixel ring. The Mega uses internal pull-ups, so each button connects from its signal pin to GND. The ring uses Mega D22 as data. Keep the low-voltage control cable separate from mains wiring, provide strain relief, and use a common low-voltage ground.
+## Runtime ownership
 
-## UART level shifting
+The Mega starts the appropriate copper anode drive output immediately, runs the
+startup animation, then starts the configured runtime countdown. It also owns
+cancel and finished feedback. The ESP32 has no direct connection to the L298N
+inputs or LED ring, and no runtime state of its own.
 
-The Mega's Serial1 logic is 5 V and ESP32 GPIO is 3.3 V. The Mega TX1/D18 signal **must** be divided before reaching ESP32 GPIO16/RX2. A 1 kΩ series resistor from D18 to GPIO16 and a 2 kΩ resistor from GPIO16 to GND produces approximately 3.3 V. ESP32 GPIO17/TX2 can connect directly to Mega D19/RX1, and the boards must share ground.
-
-Do not connect the two USB ports together. Both boards are USB devices; use their separate USB connections only for power/programming/debugging and use UART for inter-board communication.
+This project controls runtime only. It does not measure copper concentration,
+pH, alkalinity, flow, or any other water-chemistry parameter. Validate settings
+using appropriate pool-test equipment and professional guidance.

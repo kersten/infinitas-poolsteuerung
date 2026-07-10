@@ -3,18 +3,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "ChannelState.h"
+#include "AnodeState.h"
 
-namespace pool {
+namespace poolanode {
 namespace protocol {
 
 enum class Command : uint8_t {
-  StartLeft,
-  StopLeft,
-  StartRight,
-  StopRight,
-  ToggleLeft,
-  ToggleRight,
+  StartSwimmingPool,
+  StopSwimmingPool,
+  StartWhirlpool,
+  StopWhirlpool,
+  ToggleSwimmingPool,
+  ToggleWhirlpool,
   Status,
   Unknown,
 };
@@ -25,21 +25,18 @@ struct ParsedCommand {
 };
 
 struct StateSnapshot {
-  ChannelState left;
-  ChannelState right;
-  uint32_t leftRemainingMs;
-  uint32_t rightRemainingMs;
+  AnodeState swimmingPool;
+  AnodeState whirlpool;
+  uint32_t swimmingPoolRemainingMs;
+  uint32_t whirlpoolRemainingMs;
 };
 
-// Commands and events are line based. Callers own the line buffer and should
-// strip CR/LF before parsing. No dynamic allocation is used in the protocol.
 ParsedCommand parseCommand(const char *line);
 bool parseState(const char *line, StateSnapshot &state);
-
 const char *commandName(Command command);
 bool serializeState(char *buffer, size_t bufferSize, const StateSnapshot &state);
 bool serializeError(char *buffer, size_t bufferSize, const char *code,
                     const char *message);
 
 }  // namespace protocol
-}  // namespace pool
+}  // namespace poolanode

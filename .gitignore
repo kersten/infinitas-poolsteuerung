@@ -7,10 +7,6 @@
 .vscode/launch.json
 .vscode/ipch/
 compile_commands.json
-esp32-gateway/build/
-esp32-gateway/managed_components/
-esp32-gateway/dependencies.lock
-esp32-gateway/sdkconfig
-esp32-gateway/sdkconfig.old
+esp32-gateway/
 *.swp
 .DS_Store

@@ -10,6 +10,36 @@ permissions:
   contents: read
 
 jobs:
+  build-mega:
+    name: Build Arduino Mega anode controller
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install "platformio==6.1.19" "click==8.1.7"
+      - run: pio run --environment mega-anode-controller
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mega-anode-controller
+          path: .pio/build/mega-anode-controller/firmware.hex
+
+  build-esp32-matter:
+    name: Build ESP32 Matter gateway
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install "platformio==6.1.19" "click==8.1.7"
+      - run: pio run --environment esp32-Matter-gateway
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp32-Matter-gateway
+          path: .pio/build/esp32-Matter-gateway/firmware.bin
+
   native-tests:
     name: Native unit tests
     runs-on: ubuntu-latest
@@ -18,52 +48,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Install PlatformIO
-        run: pip install platformio
-      - name: Run shared-logic tests
-        run: pio test --environment native
+      - run: pip install "platformio==6.1.19" "click==8.1.7"
+      - run: pio test --environment native
 
-  build-mega:
-    name: Build Arduino Mega firmware
+  formatting:
+    name: Formatting and whitespace
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Install PlatformIO
-        run: pip install platformio
-      - run: pio run --environment mega-controller
-
-  build-esp32-matter:
-    name: Build ESP32 Matter gateway
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up ESP-IDF
-        uses: espressif/setup-esp-idf@v1
-        with:
-          version: v5.4.1
-      - name: Check out ESP-Matter v1.4.2
-        run: |
-          git clone --branch release/v1.4.2 --depth 1 https://github.com/espressif/esp-matter.git "$RUNNER_TEMP/esp-matter"
-          git -C "$RUNNER_TEMP/esp-matter" submodule update --init --depth 1
-          cd "$RUNNER_TEMP/esp-matter/connectedhomeip/connectedhomeip"
-          ./scripts/checkout_submodules.py --platform esp32 linux --shallow
-          cd ../..
-          ./install.sh
-      - name: Build Matter gateway
-        working-directory: esp32-gateway
-        run: |
-          export ESP_MATTER_PATH="$RUNNER_TEMP/esp-matter"
-          . "$ESP_MATTER_PATH/export.sh"
-          idf.py set-target esp32
-          idf.py build
-
-  hygiene:
-    name: Repository hygiene
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check whitespace errors
-        run: git diff --check $(git hash-object -t tree /dev/null) HEAD
+      - run: git diff --check $(git hash-object -t tree /dev/null) HEAD

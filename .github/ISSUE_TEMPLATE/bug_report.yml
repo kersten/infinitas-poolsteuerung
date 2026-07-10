@@ -1,12 +1,11 @@
 name: Bug report
-description: Report a reproducible problem. Do not include live mains wiring details or secrets.
+description: Report a reproducible problem. Do not include secrets or energized-wiring experiments.
 title: "[Bug]: "
 labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: |
-        Safety first: disconnect mains power before investigating physical controller behavior.
+      value: Disconnect power before investigating hardware behavior.
   - type: input
     id: version
     attributes:
@@ -17,7 +16,7 @@ body:
     id: component
     attributes:
       label: Affected component
-      options: [Arduino Mega controller, ESP32 HomeKit gateway, UART protocol, Documentation, Tests]
+      options: [Arduino Mega anode controller, ESP32 Matter gateway, UART protocol, Documentation, Tests]
     validations:
       required: true
   - type: textarea

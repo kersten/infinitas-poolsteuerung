@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-namespace pool {
+namespace poolanode {
 namespace protocol {
 namespace {
 
@@ -41,23 +41,23 @@ ParsedCommand parseCommand(const char *line) {
   if (line == 0) {
     return unknown;
   }
-  if (isExactCommand(line, "START_LEFT")) {
-    return {Command::StartLeft, true};
+  if (isExactCommand(line, "START_SWIMMING_POOL")) {
+    return {Command::StartSwimmingPool, true};
   }
-  if (isExactCommand(line, "STOP_LEFT")) {
-    return {Command::StopLeft, true};
+  if (isExactCommand(line, "STOP_SWIMMING_POOL")) {
+    return {Command::StopSwimmingPool, true};
   }
-  if (isExactCommand(line, "START_RIGHT")) {
-    return {Command::StartRight, true};
+  if (isExactCommand(line, "START_WHIRLPOOL")) {
+    return {Command::StartWhirlpool, true};
   }
-  if (isExactCommand(line, "STOP_RIGHT")) {
-    return {Command::StopRight, true};
+  if (isExactCommand(line, "STOP_WHIRLPOOL")) {
+    return {Command::StopWhirlpool, true};
   }
-  if (isExactCommand(line, "TOGGLE_LEFT")) {
-    return {Command::ToggleLeft, true};
+  if (isExactCommand(line, "TOGGLE_SWIMMING_POOL")) {
+    return {Command::ToggleSwimmingPool, true};
   }
-  if (isExactCommand(line, "TOGGLE_RIGHT")) {
-    return {Command::ToggleRight, true};
+  if (isExactCommand(line, "TOGGLE_WHIRLPOOL")) {
+    return {Command::ToggleWhirlpool, true};
   }
   if (isExactCommand(line, "STATUS")) {
     return {Command::Status, true};
@@ -69,65 +69,63 @@ bool parseState(const char *line, StateSnapshot &state) {
   if (line == 0 || strncmp(line, "STATE ", 6) != 0) {
     return false;
   }
-
-  // The gateway has a bounded UART line buffer, so a fixed scratch copy keeps
-  // parsing deterministic and avoids allocations on embedded targets.
-  char scratch[160];
+  char scratch[192];
   const size_t length = strlen(line);
   if (length >= sizeof(scratch)) {
     return false;
   }
   memcpy(scratch, line + 6, length - 5);
 
-  bool gotLeft = false;
-  bool gotRight = false;
-  bool gotLeftRemaining = false;
-  bool gotRightRemaining = false;
+  bool gotSwimmingPool = false;
+  bool gotWhirlpool = false;
+  bool gotSwimmingPoolRemaining = false;
+  bool gotWhirlpoolRemaining = false;
   char *save = 0;
   for (char *token = strtok_r(scratch, " ", &save); token != 0;
        token = strtok_r(0, " ", &save)) {
     const char *value = 0;
-    if (parseKeyValue(token, "LEFT", value)) {
-      if (!parseChannelState(value, state.left)) {
+    if (parseKeyValue(token, "SWIMMING_POOL", value)) {
+      if (!parseAnodeState(value, state.swimmingPool)) {
         return false;
       }
-      gotLeft = true;
-    } else if (parseKeyValue(token, "RIGHT", value)) {
-      if (!parseChannelState(value, state.right)) {
+      gotSwimmingPool = true;
+    } else if (parseKeyValue(token, "WHIRLPOOL", value)) {
+      if (!parseAnodeState(value, state.whirlpool)) {
         return false;
       }
-      gotRight = true;
-    } else if (parseKeyValue(token, "LEFT_REMAINING", value)) {
-      if (!parseUint32(value, state.leftRemainingMs)) {
+      gotWhirlpool = true;
+    } else if (parseKeyValue(token, "SWIMMING_POOL_REMAINING", value)) {
+      if (!parseUint32(value, state.swimmingPoolRemainingMs)) {
         return false;
       }
-      gotLeftRemaining = true;
-    } else if (parseKeyValue(token, "RIGHT_REMAINING", value)) {
-      if (!parseUint32(value, state.rightRemainingMs)) {
+      gotSwimmingPoolRemaining = true;
+    } else if (parseKeyValue(token, "WHIRLPOOL_REMAINING", value)) {
+      if (!parseUint32(value, state.whirlpoolRemainingMs)) {
         return false;
       }
-      gotRightRemaining = true;
+      gotWhirlpoolRemaining = true;
     } else {
       return false;
     }
   }
-  return gotLeft && gotRight && gotLeftRemaining && gotRightRemaining;
+  return gotSwimmingPool && gotWhirlpool && gotSwimmingPoolRemaining &&
+         gotWhirlpoolRemaining;
 }
 
 const char *commandName(Command command) {
   switch (command) {
-    case Command::StartLeft:
-      return "START_LEFT";
-    case Command::StopLeft:
-      return "STOP_LEFT";
-    case Command::StartRight:
-      return "START_RIGHT";
-    case Command::StopRight:
-      return "STOP_RIGHT";
-    case Command::ToggleLeft:
-      return "TOGGLE_LEFT";
-    case Command::ToggleRight:
-      return "TOGGLE_RIGHT";
+    case Command::StartSwimmingPool:
+      return "START_SWIMMING_POOL";
+    case Command::StopSwimmingPool:
+      return "STOP_SWIMMING_POOL";
+    case Command::StartWhirlpool:
+      return "START_WHIRLPOOL";
+    case Command::StopWhirlpool:
+      return "STOP_WHIRLPOOL";
+    case Command::ToggleSwimmingPool:
+      return "TOGGLE_SWIMMING_POOL";
+    case Command::ToggleWhirlpool:
+      return "TOGGLE_WHIRLPOOL";
     case Command::Status:
       return "STATUS";
     case Command::Unknown:
@@ -142,10 +140,11 @@ bool serializeState(char *buffer, size_t bufferSize, const StateSnapshot &state)
   }
   const int result = snprintf(
       buffer, bufferSize,
-      "STATE LEFT=%s RIGHT=%s LEFT_REMAINING=%lu RIGHT_REMAINING=%lu",
-      channelStateName(state.left), channelStateName(state.right),
-      static_cast<unsigned long>(state.leftRemainingMs),
-      static_cast<unsigned long>(state.rightRemainingMs));
+      "STATE SWIMMING_POOL=%s WHIRLPOOL=%s SWIMMING_POOL_REMAINING=%lu "
+      "WHIRLPOOL_REMAINING=%lu",
+      anodeStateName(state.swimmingPool), anodeStateName(state.whirlpool),
+      static_cast<unsigned long>(state.swimmingPoolRemainingMs),
+      static_cast<unsigned long>(state.whirlpoolRemainingMs));
   return result >= 0 && static_cast<size_t>(result) < bufferSize;
 }
 
@@ -160,4 +159,4 @@ bool serializeError(char *buffer, size_t bufferSize, const char *code,
 }
 
 }  // namespace protocol
-}  // namespace pool
+}  // namespace poolanode

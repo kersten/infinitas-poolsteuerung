@@ -14,7 +14,7 @@ ionization systems.
 
 ## Features
 
-- Independent Swimming Pool Anode (30 minutes) and Whirlpool Anode (2 hours)
+- Independent Swimming Pool Anode (2 hours) and Whirlpool Anode (30 minutes)
   channels that can run together
 - Local active-low buttons with software debounce
 - Non-blocking 16-pixel WS2812/NeoPixel animations: startup, runtime, cancel,

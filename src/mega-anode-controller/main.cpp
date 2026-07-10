@@ -30,10 +30,10 @@ const uint8_t kWhirlpoolAnodeOnIn3Level = HIGH;
 const uint8_t kWhirlpoolAnodeOnIn4Level = LOW;
 
 const poolanode::AnodeChannelConfig kSwimmingPoolAnodeConfig = {
-    30UL * 60UL * 1000UL, 100, poolanode::kLedsPerAnodeChannel, 250, 1000};
-const poolanode::AnodeChannelConfig kWhirlpoolAnodeConfig = {
     2UL * 60UL * 60UL * 1000UL, 100, poolanode::kLedsPerAnodeChannel, 250,
     1000};
+const poolanode::AnodeChannelConfig kWhirlpoolAnodeConfig = {
+    30UL * 60UL * 1000UL, 100, poolanode::kLedsPerAnodeChannel, 250, 1000};
 
 // Change the physical order or orientation to match the installed LED ring.
 const poolanode::LedMapperConfig kLedMapperConfig = {

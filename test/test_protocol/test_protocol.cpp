@@ -55,13 +55,13 @@ void test_unknown_command_returns_error(void) {
 void test_state_serializes_and_parses(void) {
   const poolanode::protocol::StateSnapshot state = {
       poolanode::AnodeState::Starting, poolanode::AnodeState::Running,
-      1800000, 7654321};
+      7200000, 1234567};
   char line[180];
   TEST_ASSERT_TRUE(poolanode::protocol::serializeState(line, sizeof(line),
                                                         state));
   TEST_ASSERT_EQUAL_STRING(
       "STATE SWIMMING_POOL=STARTING WHIRLPOOL=RUNNING "
-      "SWIMMING_POOL_REMAINING=1800000 WHIRLPOOL_REMAINING=7654321",
+      "SWIMMING_POOL_REMAINING=7200000 WHIRLPOOL_REMAINING=1234567",
       line);
 
   poolanode::protocol::StateSnapshot parsed;

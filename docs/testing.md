@@ -31,9 +31,9 @@ validation.
   Whirlpool Anode.
 - [ ] UART communication produces `READY`, `STATUS`, and `STATE` behavior.
 - [ ] Swimming Pool Anode starts from its local button and its runtime matches
-  the configured 30 minutes after startup animation.
+  the configured 2 hours after startup animation.
 - [ ] Whirlpool Anode starts from its local button and its runtime matches the
-  configured 2 hours after startup animation.
+  configured 30 minutes after startup animation.
 - [ ] Both anode channels operate simultaneously without changing each other.
 - [ ] A second local press cancels the corresponding anode output immediately
   and yellow feedback appears.

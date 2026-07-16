@@ -20,7 +20,7 @@ jobs:
           python-version: "3.x"
       - run: pip install "platformio==6.1.19" "click==8.1.7"
       - run: pio run --environment mega-anode-controller
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mega-anode-controller
           path: .pio/build/mega-anode-controller/firmware.hex
@@ -35,7 +35,7 @@ jobs:
           python-version: "3.x"
       - run: pip install "platformio==6.1.19" "click==8.1.7"
       - run: pio run --environment esp32-Matter-gateway
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: esp32-Matter-gateway
           path: .pio/build/esp32-Matter-gateway/firmware.bin
